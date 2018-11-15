@@ -21,19 +21,15 @@ uploadSpeed = speedtester.upload() / megabits
 downloadSpeed = str(round(downloadSpeed, 2))
 uploadSpeed = str(round(uploadSpeed, 2))
 
-sqlServer = "localhost\SQLEXPRESS01"
-sqlTable = "net_speeds"
-sqlDb = "PyNet"
-
 print("Connecting to database...")
 sqlCon = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
-                        "Server=" + sqlServer + ";"
-                        "Database=" + sqlDb + ";"
+                        "Server=localhost\SQLEXPRESS01;"
+                        "Database=PyNet;"
                         "Trusted_Connection=yes;")
 
 print("Connected! Inserting network speed values...")
 cursor = sqlCon.cursor()
-cursor.execute("INSERT INTO " + sqlTable + " (downloadSpeed, uploadSpeed) VALUES (" + downloadSpeed + ", " + uploadSpeed + ")")
+cursor.execute("INSERT INTO net_speeds (downloadSpeed, uploadSpeed) VALUES (" + downloadSpeed + ", " + uploadSpeed + ")")
 cursor.commit()
 print("Values inserted, closing connection.")
 cursor.close()
