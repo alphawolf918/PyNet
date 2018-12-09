@@ -2,16 +2,31 @@ import speedtest
 import pyodbc
 import ctypes
 import win32serviceutil as winServ
+import subprocess as sp
 
 ctypes.windll.kernel32.SetConsoleTitleW("PyNet")
 
-sqlServiceName = "MSSQL$SQLEXPRESS01"
-sqlServiceStatus = winServ.QueryServiceStatus(sqlServiceName)[1]
+sqlServiceStatus = winServ.QueryServiceStatus("MSSQL$SQLEXPRESS01")[1]
 
 if sqlServiceStatus != 4:
     print("Starting SQL Server Service...")
     winServ.StartService(sqlServiceName)
     print("SQL Server Service started successfully.\n")
+
+def getWiFiName():
+    cmd = sp.check_output(["netsh", "wlan", "show", "interfaces"], shell=True)
+    cmd = str.replace(str(cmd), "  ", "")
+    cmd = str.replace(cmd, "\\r\\n", "$")
+    netInfo = str.split(cmd, "$")
+    wifi = "NULL"
+    for s in netInfo:
+        x = str.split(str.strip(s), ":")
+        if len(x) > 1:
+            key, value = x[0], x[1]
+            if str.rstrip(key, " ") == "SSID":
+                wifi = str.lstrip(value, " ")
+                break
+    return wifi
 
 print("Connecting to SpeedTest...")
 speedtester = speedtest.Speedtest()
@@ -32,6 +47,7 @@ uploadSpeed = speedtester.upload() / megabits
 
 downloadSpeed = str(round(downloadSpeed, 2))
 uploadSpeed = str(round(uploadSpeed, 2))
+wifiNet = getWiFiName()
 
 print("Connecting to database...")
 try:
@@ -42,7 +58,8 @@ try:
 
     print("Connected! Inserting network speed values...")
     cursor = sqlCon.cursor()
-    cursor.execute("INSERT INTO net_speeds (downloadSpeed, uploadSpeed) VALUES (" + downloadSpeed + ", " + uploadSpeed + ")")
+    cursor.execute("INSERT INTO net_speeds (downloadSpeed, uploadSpeed, network_name) "
+                   "VALUES (" + downloadSpeed + ", " + uploadSpeed + ", '" + wifiNet +"')")
     cursor.commit()
     print("Values inserted, closing connection.")
     cursor.close()
@@ -54,4 +71,5 @@ except:
 print("--------------")
 print("Download Speed: " + downloadSpeed + " Mbps")
 print("Upload Speed: " + uploadSpeed + " Mbps")
+print("Wi-Fi: " + wifiNet)
 print("--------------\n")
