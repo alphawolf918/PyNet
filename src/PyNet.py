@@ -6,7 +6,8 @@ import subprocess as sp
 
 ctypes.windll.kernel32.SetConsoleTitleW("PyNet")
 
-sqlServiceStatus = winServ.QueryServiceStatus("MSSQL$SQLEXPRESS01")[1]
+sqlServiceName = "MSSQL$SQLEXPRESS01"
+sqlServiceStatus = winServ.QueryServiceStatus(sqlServiceName)[1]
 
 if sqlServiceStatus != 4:
     print("Starting SQL Server Service...")
