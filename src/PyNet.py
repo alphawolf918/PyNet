@@ -1,18 +1,37 @@
-import speedtest
-import pyodbc
+import speedtest as spd
+import pyodbc as db
 import ctypes
 import win32serviceutil as winServ
 import subprocess as sp
+import configparser
+import io
+
+SW_HIDE = 0
+info = sp.STARTUPINFO()
+info.dwFlags = sp.STARTF_USESHOWWINDOW
+info.wShowWindow = SW_HIDE
+SERVICE_ACTIVE = 4
 
 ctypes.windll.kernel32.SetConsoleTitleW("PyNet")
 
-sqlServiceName = "MSSQL$SQLEXPRESS01"
+config = configparser.ConfigParser()
+config.readfp(open(r"PyConfig.ini"))
+confSection = "DEFAULT"
+
+sqlServiceName = config.get(confSection, "SQLServiceName")
+sqlDriver = config.get(confSection, "Driver")
+sqlServ = config.get(confSection, "Server")
+sqlDb = config.get(confSection, "Database")
+
 sqlServiceStatus = winServ.QueryServiceStatus(sqlServiceName)[1]
 
-if sqlServiceStatus != 4:
-    print("Starting SQL Server Service...")
-    winServ.StartService(sqlServiceName)
-    print("SQL Server Service started successfully.\n")
+if sqlServiceStatus != SERVICE_ACTIVE:
+    try:
+        print("Starting SQL Server Service...")
+        winServ.StartService(sqlServiceName)
+        print("SQL Server Service started successfully.\n")
+    except:
+        print("There was an error with starting the SQL Server Service.")
 
 def getWiFiName():
     cmd = sp.check_output(["netsh", "wlan", "show", "interfaces"], shell=True)
@@ -30,7 +49,7 @@ def getWiFiName():
     return wifi
 
 print("Connecting to SpeedTest...")
-speedtester = speedtest.Speedtest()
+speedtester = spd.Speedtest()
     
 print("Getting set of closest servers...")
 speedtester.get_closest_servers()
@@ -52,10 +71,10 @@ wifiNet = getWiFiName()
 
 print("Connecting to database...")
 try:
-    sqlCon = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
-                            "Server=localhost\SQLEXPRESS01;"
-                            "Database=PyNet;"
-                            "Trusted_Connection=yes;")
+    sqlCon = db.connect("Driver=" + sqlDriver + ";"
+                        "Server=" + sqlServ + ";"
+                        "Database=" + sqlDb + ";"
+                        "Trusted_Connection=yes;")
 
     print("Connected! Inserting network speed values...")
     cursor = sqlCon.cursor()
